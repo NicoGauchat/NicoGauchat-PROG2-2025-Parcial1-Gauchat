@@ -6,7 +6,7 @@
     <session-factory>
         <!-- Database connection settings -->
         <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
-        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/vehicle_rental</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/gestion_pagos_servicios</property>
         <property name="hibernate.connection.username">root</property>
         <property name="hibernate.connection.password">123456</property>
 
@@ -23,7 +23,7 @@
         <property name="hibernate.hbm2ddl.auto">update</property>
 
         <!-- Entity mappings -->
-        <mapping class="org.example.models.Vehicle"/>
-        <mapping class="org.example.models.Reservation"/>
+        <mapping class="org.example.entidades.ContratoServicio"/>
+        <mapping class="org.example.entidades.PagoServicio"/>
     </session-factory>
 </hibernate-configuration>

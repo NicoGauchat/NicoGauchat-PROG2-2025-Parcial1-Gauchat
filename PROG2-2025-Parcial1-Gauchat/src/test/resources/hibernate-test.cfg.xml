@@ -21,7 +21,7 @@
         <property name="hibernate.hbm2ddl.auto">create-drop</property>
 
         <!-- Names the annotated entity classes -->
-        <mapping class="org.example.models.Vehicle"/>
-        <mapping class="org.example.models.Reservation"/>
+        <mapping class="org.example.entidades.ContratoServicio"/>
+        <mapping class="org.example.entidades.PagoServicio"/>
     </session-factory>
 </hibernate-configuration>

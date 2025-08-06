@@ -1,10 +1,8 @@
 package org.example.servicios;
 
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.criteria.*;
 import org.example.dtos.*;
 import org.example.entidades.ContratoServicio;
 import org.example.entidades.PagoServicio;
@@ -87,9 +85,59 @@ return new NuevoPagoParametrosDTO(dto.getIdContrato(), dto.getMonto(), estado);
             List<ContratoServicio> resultado = session.createQuery(query).getResultList();
             return resultado.stream().map(ContratoServicioDTO::fromEntity).collect(Collectors.toList());
         }
-public ResumenDTO obtenerResumenContratosCancelados(RangoDeFechasDTO dto){
-            
-        }
-
     }
+    public List<ResumenDTO> obtenerResumenContratosCancelados(RangoDeFechasDTO dto) {
+        try (Session session = HibernateUtil.getSession()) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<ResumenDTO> query = cb.createQuery(ResumenDTO.class);
+            Root<ContratoServicio> contratoRoot = query.from(ContratoServicio.class);
+
+            query.where(cb.and(cb.between(contratoRoot.get("fechaInicio"), dto.getFechaInicioDesde(), dto.getFechaInicioHasta()), cb.equal(contratoRoot.get("estado"), Estado.CANCELADO)
+            ));
+            Expression<Integer> duracionMeses = cb.function(
+                    "timestampdiff",
+                    Integer.class,
+                    cb.literal(org.hibernate.query.sqm.TemporalUnit.MONTH),
+                    contratoRoot.get("fechaInicio"),
+                    contratoRoot.get("fechaFin")
+            );
+            Expression<BigDecimal> montoTotalCobrado = cb.sum(
+                    cb.prod(
+                            contratoRoot.get("tarifaMensual"),
+                            duracionMeses.as(BigDecimal.class)
+                    )
+            );
+            query.groupBy(contratoRoot.get("tipoServicio"));
+            query.select(cb.construct(ResumenDTO.class, contratoRoot.get("tipoServicio"), cb.count(contratoRoot), montoTotalCobrado));
+
+            return session.createQuery(query).getResultList();
+        }
+        }
+    public List<ResumenContratosNoCanceladosDTO> obtenerResumenContartosNoCancelados() {
+        try (Session session = HibernateUtil.getSession()) {
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<ResumenContratosNoCanceladosDTO> query = cb.createQuery(ResumenContratosNoCanceladosDTO.class);
+            Root<ContratoServicio> contratoRoot = query.from(ContratoServicio.class);
+            Join<ContratoServicio, PagoServicio> pagoJoin = contratoRoot.join("pagos");
+
+            query.where(cb.or(cb.equal(contratoRoot.get("estado"), Estado.ACTIVO), cb.equal(contratoRoot.get("estado"), Estado.VENCIDO)));
+
+            Expression<Integer> duracionMeses = cb.function(
+                    "timestampdiff",
+                    Integer.class,
+                    cb.literal(org.hibernate.query.sqm.TemporalUnit.MONTH),
+                    contratoRoot.get("fechaInicio"),
+                    contratoRoot.get("fechaFin")
+            );
+
+            Expression<BigDecimal> montoTotalEsperado = cb.sum(
+                    cb.prod(contratoRoot.get("tarifaMensual"), duracionMeses.as(BigDecimal.class)
+                    )
+            );
+            query.select(cb.construct(ResumenContratosNoCanceladosDTO.class, montoTotalEsperado, cb.sum(pagoJoin.get("monto"))
+            ));
+            return session.createQuery(query).getResultList();
+        }
 }
+    }
+
